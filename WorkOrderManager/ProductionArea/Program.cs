@@ -1,19 +1,20 @@
 ﻿using System;
 using System.IO;
 
-namespace BOMOrderManager
+namespace ProductionArea
 {
-	class Program
+	internal class Program
 	{
 		public const string refFileName = "Recipes.json"; //Acts as a "reference" Database
 		private static string path;
 		private static string folder;
 		public static string refPath;
-		static void Main(string[] args)
+
+		private static void Main(string[] args)
 		{
-			
-			
-			BOMOrderManagerServer server = null;
+
+
+			ProductionAreaServer server = null;
 			int port = 8081;
 			path = AppDomain.CurrentDomain.BaseDirectory;
 			folder = Path.Combine(path, "1_BOMOrderManager");
@@ -21,12 +22,12 @@ namespace BOMOrderManager
 			Console.WriteLine(folder);
 			try
 			{
-				
-				server = new BOMOrderManagerServer(folder, port);
+
+				server = new ProductionAreaServer(folder, port);
 				Console.WriteLine("HELLO! SERVER RUNNING ON 127.0.0.1:{0}", port.ToString());
-				
+
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				Console.WriteLine(e.Message);
 				server?.Stop();

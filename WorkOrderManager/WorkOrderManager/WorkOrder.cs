@@ -47,7 +47,6 @@ namespace WorkOrderManager
 		public static WorkOrder FromJson(string jsonString)
 		{
 			return JsonConvert.DeserializeObject<WorkOrder>(jsonString);
-			
 		}
 
 		public override string ToString()

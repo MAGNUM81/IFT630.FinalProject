@@ -7,7 +7,7 @@ namespace WorkOrderManager
 {
 	internal class Program
 	{
-		public const string name = "WorkOrderManager";
+		public const string name = "1";
 		private const string help = "This is the help manual.";
 		private string action = "";
 		private string type = "";
@@ -71,11 +71,14 @@ namespace WorkOrderManager
 		{
 			var exeWarehouse1 = Path.Combine(path, "BOMOrderManager.exe");
 			var folderWarehouse1 = "1_BOMOrderManager";
+			var exeCarrier = Path.Combine(path, "Carrier.exe");
+			var folderCarrier = "2_Carrier";
 			var exeProductionArea = Path.Combine(path, "ProductionArea.exe");
 			var folderProductionArea = "3_ProductionArea";
 			var exeWarehouse2 = Path.Combine(path, "FinalWarehouse.exe");
 			var folderWareHouse2 = "4_FinalWarehouse";
 			serversMap.Add(exeWarehouse1, new KeyValuePair<string, string>(folderWarehouse1, "8081"));          //Start executable with parameters
+			serversMap.Add(exeCarrier, new KeyValuePair<string, string>(folderCarrier, "8082"));
 			serversMap.Add(exeProductionArea, new KeyValuePair<string, string>(folderProductionArea, "8083"));  //Start executable with parameters
 			serversMap.Add(exeWarehouse2, new KeyValuePair<string, string>(folderWareHouse2, "8084"));          //Start executable with parameters
 			localServer = new WorkOrderServer(folder, 8080);
@@ -159,8 +162,6 @@ namespace WorkOrderManager
 						{
 							Console.WriteLine(e.Message);
 						}
-						
-						
 					}
 
 					break;

@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{BA7C41B3-D38A-467A-932F-10C6B881A9A0}</ProjectGuid>
+    <ProjectGuid>{9B1AA097-81E8-4980-A382-1C229DB8D01E}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>BOMOrderManager</RootNamespace>
-    <AssemblyName>BOMOrderManager</AssemblyName>
+    <RootNamespace>Carrier</RootNamespace>
+    <AssemblyName>Carrier</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -22,9 +22,6 @@
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>
-    </DocumentationFile>
-    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -49,17 +46,16 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\BOMOrderManager\DeliveryOrder.cs">
+      <Link>DeliveryOrder.cs</Link>
+    </Compile>
     <Compile Include="..\WorkOrderManager\HttpClientLayer.cs">
       <Link>HttpClientLayer.cs</Link>
     </Compile>
     <Compile Include="..\WorkOrderManager\Message.cs">
       <Link>Message.cs</Link>
     </Compile>
-    <Compile Include="..\WorkOrderManager\WorkOrder.cs">
-      <Link>WorkOrder.cs</Link>
-    </Compile>
-    <Compile Include="BOMOrderManagerServer.cs" />
-    <Compile Include="DeliveryOrder.cs" />
+    <Compile Include="CarrierServer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>

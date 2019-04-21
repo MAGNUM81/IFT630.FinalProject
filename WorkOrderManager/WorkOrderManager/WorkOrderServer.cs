@@ -90,7 +90,7 @@ namespace WorkOrderManager
 
 			Console.WriteLine("Start of client data:");
 			// Convert the data to a string and display it on the console.
-			string all = reader.ReadToEnd();
+			var all = reader.ReadToEnd();
 			Console.WriteLine(all);
 			Console.WriteLine("End of client data:");
 

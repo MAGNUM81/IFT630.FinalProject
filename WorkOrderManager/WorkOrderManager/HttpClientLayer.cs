@@ -22,7 +22,6 @@ namespace WorkOrderManager
 			using (var client = new HttpClient())
 			{
 				client.BaseAddress = new Uri(url);
-				
 				client.Timeout = TimeSpan.FromMilliseconds(300);
 				var response = await client.PostAsync(client.BaseAddress, new StringContent(message.ToString()));
 

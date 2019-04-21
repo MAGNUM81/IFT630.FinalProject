@@ -4,10 +4,10 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{BA7C41B3-D38A-467A-932F-10C6B881A9A0}</ProjectGuid>
+    <ProjectGuid>{4B023DA6-10C0-4A93-A11A-65AFD3257F3C}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>BOMOrderManager</RootNamespace>
-    <AssemblyName>BOMOrderManager</AssemblyName>
+    <RootNamespace>ProductionArea</RootNamespace>
+    <AssemblyName>ProductionArea</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
@@ -18,13 +18,10 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>..\WorkOrderManager\bin\Debug\</OutputPath>
+    <OutputPath>bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
-    <DocumentationFile>
-    </DocumentationFile>
-    <GenerateSerializationAssemblies>Auto</GenerateSerializationAssemblies>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Release|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
@@ -58,8 +55,7 @@
     <Compile Include="..\WorkOrderManager\WorkOrder.cs">
       <Link>WorkOrder.cs</Link>
     </Compile>
-    <Compile Include="BOMOrderManagerServer.cs" />
-    <Compile Include="DeliveryOrder.cs" />
+    <Compile Include="ProductionAreaServer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
