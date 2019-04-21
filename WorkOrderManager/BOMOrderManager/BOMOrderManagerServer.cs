@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Net;
+using System.Net.Http;
 using System.Net.Sockets;
 using System.Threading;
+using System.Threading.Tasks;
 using WorkOrderManager;
 
 namespace BOMOrderManager
@@ -73,34 +75,77 @@ namespace BOMOrderManager
 
 		private void Process(HttpListenerContext context)
 		{
-			if(int.Parse(context.Request.Headers["source"]) == (int)Message.ApprovedEndpoint.WorkOrderManager)
+			var head = context.Request.Headers;
+			var src = context.Request.Headers["source"];
+			int isrc = int.Parse(src);
+			var request = context.Request;
+			System.IO.Stream body = request.InputStream;
+			System.Text.Encoding encoding = request.ContentEncoding;
+			System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
+			if (request.ContentType != null)
 			{
-				var request = context.Request;
-				System.IO.Stream body = request.InputStream;
-				System.Text.Encoding encoding = request.ContentEncoding;
-				System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
-				if (request.ContentType != null)
-				{
-					Console.WriteLine("Client data content type {0}", request.ContentType);
-				}
-				Console.WriteLine("Client data content length {0}", request.ContentLength64);
+				Console.WriteLine("Client data content type {0}", request.ContentType);
+			}
+			Console.WriteLine("Client data content length {0}", request.ContentLength64);
 
-				Console.WriteLine("Start of client data:");
-				// Convert the data to a string and display it on the console.
-				string s = reader.ReadToEnd();
-				Console.WriteLine(s);
-				Console.WriteLine("End of client data:");
+			Console.WriteLine("Start of client data:");
+			// Convert the data to a string and display it on the console.
+			string all = reader.ReadToEnd();
+			Console.WriteLine(all);
+			Console.WriteLine("End of client data:");
+			if (isrc == (int)Message.ApprovedEndpoint.WorkOrderManager)
+			{
+				
+
+				//Create a response
+				Message m = Message.FromJson(all);
+				m.action = Message.NetworkAction.Delivery;
+				m.source = Message.ApprovedEndpoint.Carrier;
+				m.destination = Message.ApprovedEndpoint.BOMOrderManager;
+				Thread thread = new Thread(() => forwardToCarrier(m));
+				thread.Start();
+				m.action = Message.NetworkAction.Echo;
+				var strResponse = Message.ToJson(m);
+				context.Response.Headers.Add("Content", strResponse);
+				context.Response.ContentLength64 = strResponse.Length;
+				context.Response.StatusCode = (int) HttpStatusCode.OK;
+			}else if(isrc == (int)Message.ApprovedEndpoint.Carrier)
+			{
+
 			}
 			//Adding permanent http response headers
 			context.Response.ContentType = "application/json";
-			context.Response.ContentLength64 = 0;
 			context.Response.AddHeader("Date", DateTime.Now.ToString("r"));
-			
-			
+			byte[] buffer = new byte[1024 * 16];
+			context.Response.OutputStream.BeginWrite(buffer, 0, buffer.Length, finishedWriteCallBack, context);
+		}
 
-			context.Response.StatusCode = (int)HttpStatusCode.OK;
-			context.Response.OutputStream.Flush();
-			context.Response.OutputStream.Close();
+		private static void finishedWriteCallBack(IAsyncResult result)
+		{
+			var ctx = (HttpListenerContext) result.AsyncState;
+			ctx.Response.OutputStream.EndWrite(result);
+			ctx.Response.OutputStream.Flush();
+			ctx.Response.OutputStream.Close();
+		}
+
+		private async void forwardToCarrier(Message m)
+		{
+			try
+			{
+				var response = await HttpClientLayer.getInstance().Post("http://127.0.0.1:8082/ToBOMWarehouse", m);
+				Console.WriteLine("Got a response from the Carrier! Content : {0}", response.content);
+			}
+			catch(TaskCanceledException tce)
+			{
+				Console.WriteLine(tce.Message);
+				Console.WriteLine("Something went wrong while communicating with the Carrier.");
+				Console.WriteLine("The Carrier might be down or unstable right now.");
+				Console.WriteLine("Feel free to try again later!");
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine(e.Message);
+			}
 		}
 
 		private void Initialize(string path, int port)

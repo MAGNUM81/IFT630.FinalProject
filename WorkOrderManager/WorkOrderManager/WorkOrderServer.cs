@@ -4,6 +4,8 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 
+//Strongly inspired from https://gist.github.com/aksakalli/9191056
+
 namespace WorkOrderManager
 {
 	class WorkOrderServer
@@ -49,7 +51,7 @@ namespace WorkOrderManager
 		public void Stop()
 		{
 			_serverThread.Abort();
-			_listener.Stop();
+			_listener?.Stop();
 		}
 
 		private void Listen()
@@ -73,51 +75,43 @@ namespace WorkOrderManager
 
 		private void Process(HttpListenerContext context)
 		{
-			string filename = context.Request.Url.AbsolutePath;
-			Console.WriteLine(filename);
-			filename = filename.Substring(1);
-
-			if (string.IsNullOrEmpty(filename))
+			var head = context.Request.Headers;
+			var src = context.Request.Headers["source"];
+			int isrc = int.Parse(src);
+			var request = context.Request;
+			System.IO.Stream body = request.InputStream;
+			System.Text.Encoding encoding = request.ContentEncoding;
+			System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
+			if (request.ContentType != null)
 			{
-				Console.WriteLine("HELLOOOOOOOOOOOOOO!");
+				Console.WriteLine("Client data content type {0}", request.ContentType);
+			}
+			Console.WriteLine("Client data content length {0}", request.ContentLength64);
+
+			Console.WriteLine("Start of client data:");
+			// Convert the data to a string and display it on the console.
+			string all = reader.ReadToEnd();
+			Console.WriteLine(all);
+			Console.WriteLine("End of client data:");
+
+			if (isrc == (int)Message.ApprovedEndpoint.Carrier)
+			{
 			}
 
-			filename = Path.Combine(_rootDirectory, filename);
+			//Adding permanent http response headers
+			context.Response.ContentType = "application/json";
+			
+			context.Response.AddHeader("Date", DateTime.Now.ToString("r"));
+			byte[] buffer = new byte[1024 * 16];
+			context.Response.OutputStream.BeginWrite(buffer, 0, buffer.Length, finishedWriteCallBack, context);
+		}
 
-			if (File.Exists(filename))
-			{
-				try
-				{
-					Stream input = new FileStream(filename, FileMode.Open);
-
-					//Adding permanent http response headers
-					context.Response.ContentType = "application/json";
-					context.Response.ContentLength64 = input.Length;
-					context.Response.AddHeader("Date", DateTime.Now.ToString("r"));
-					context.Response.AddHeader("Last-Modified", System.IO.File.GetLastWriteTime(filename).ToString("r"));
-
-					byte[] buffer = new byte[1024 * 16];
-					int nbytes;
-					while ((nbytes = input.Read(buffer, 0, buffer.Length)) > 0)
-						context.Response.OutputStream.Write(buffer, 0, nbytes);
-					input.Close();
-
-					context.Response.StatusCode = (int)HttpStatusCode.OK;
-					context.Response.OutputStream.Flush();
-				}
-				catch (Exception ex)
-				{
-					Console.WriteLine(ex.Message);
-					context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
-				}
-
-			}
-			else
-			{
-				context.Response.StatusCode = (int)HttpStatusCode.NotFound;
-			}
-
-			context.Response.OutputStream.Close();
+		private static void finishedWriteCallBack(IAsyncResult result)
+		{
+			var ctx = (HttpListenerContext) result.AsyncState;
+			ctx.Response.OutputStream.EndWrite(result);
+			ctx.Response.OutputStream.Flush();
+			ctx.Response.OutputStream.Close();
 		}
 
 		private void Initialize(string path, int port)

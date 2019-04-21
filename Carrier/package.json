@@ -1,0 +1,15 @@
+{
+  "name": "carrier",
+  "version": "1.0.0",
+  "description": "This is the carrier",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node server.js"
+  },
+  "author": "MA Gill",
+  "license": "ISC",
+  "dependencies": {
+    "express": "^4.16.4"
+  }
+}

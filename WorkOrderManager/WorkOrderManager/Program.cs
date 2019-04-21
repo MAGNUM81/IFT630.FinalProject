@@ -20,6 +20,9 @@ namespace WorkOrderManager
 		private static string mediumfile;
 		private static string largefile;
 		private static string emptyfile;
+
+		private WorkOrderServer localServer;
+
 		private Dictionary<string, KeyValuePair<string, string>> serversMap = new Dictionary<string, KeyValuePair<string, string>>();
 
 		private static class Action
@@ -36,7 +39,6 @@ namespace WorkOrderManager
 			public const string empty = "empty";
 		}
 
-
 		private static void Main(string[] args)
 		{
 			Console.WriteLine("Hello, Subject!\n\tToday, we will make some painted chairs! Type \"help\" to get started.");
@@ -47,10 +49,25 @@ namespace WorkOrderManager
 			mediumfile = Path.Combine(folder, "medium.json");
 			largefile = Path.Combine(folder, "large.json");
 			emptyfile = Path.Combine(folder, "empty.json");
-			new Program().run();
+			var p = new Program();
+			try
+			{
+				p.run();
+			}
+			catch(Exception e)
+			{
+				Console.WriteLine(e.Message);
+			}
+			finally
+			{
+				Console.Write("It is your last chance to save me: ");
+				Console.ReadLine();
+				p.cleanUpAndClose();
+			}
+			
 		}
 
-		private void run()
+		public Program()
 		{
 			var exeWarehouse1 = Path.Combine(path, "BOMOrderManager.exe");
 			var folderWarehouse1 = "1_BOMOrderManager";
@@ -61,8 +78,22 @@ namespace WorkOrderManager
 			serversMap.Add(exeWarehouse1, new KeyValuePair<string, string>(folderWarehouse1, "8081"));          //Start executable with parameters
 			serversMap.Add(exeProductionArea, new KeyValuePair<string, string>(folderProductionArea, "8083"));  //Start executable with parameters
 			serversMap.Add(exeWarehouse2, new KeyValuePair<string, string>(folderWareHouse2, "8084"));          //Start executable with parameters
+			localServer = new WorkOrderServer(folder, 8080);
+		}
 
-			var localServer = new WorkOrderServer(folder, 8080);
+		private void cleanUpAndClose()
+		{
+			Console.WriteLine("Intenting to save the world from total destruction.");
+			localServer.Stop();
+		}
+
+		private void run()
+		{
+			
+
+			
+
+
 			foreach (var server in serversMap)
 			{
 				try
@@ -112,15 +143,17 @@ namespace WorkOrderManager
 						Console.WriteLine("Executing action \"{0}\" of type \"{1}\", {2}", act, Path.GetFileName(t).Split('.')[0], i);
 						var wo = WorkOrder.FromJson(File.ReadAllText(t));
 						var strwo = WorkOrder.ToJson(wo);
-						Message m = new Message();
-						m.action = Message.NetworkAction.Forward;
-						m.source = Message.ApprovedEndpoint.WorkOrderManager;
-						m.destination = Message.ApprovedEndpoint.BOMOrderManager;
-						m.content = strwo;
+						Message m = new Message
+						{
+							action = Message.NetworkAction.Forward,
+							source = Message.ApprovedEndpoint.WorkOrderManager,
+							destination = Message.ApprovedEndpoint.BOMOrderManager,
+							content = strwo
+						};
 						try
 						{
 							var response = await HttpClientLayer.getInstance().Post("http://127.0.0.1:8081", m);
-							Console.WriteLine("Received response: {0}", response.ToString());
+							Console.WriteLine("Received response: {0}", response.content);
 						}
 						catch (Exception e)
 						{

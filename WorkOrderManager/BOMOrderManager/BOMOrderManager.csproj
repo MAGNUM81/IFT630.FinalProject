@@ -49,9 +49,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\WorkOrderManager\HttpClientLayer.cs">
+      <Link>HttpClientLayer.cs</Link>
+    </Compile>
+    <Compile Include="..\WorkOrderManager\Message.cs">
+      <Link>Message.cs</Link>
+    </Compile>
     <Compile Include="BOMOrderManagerServer.cs" />
-    <Compile Include="HttpClientLayer.cs" />
-    <Compile Include="Message.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
