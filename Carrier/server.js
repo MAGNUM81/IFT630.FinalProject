@@ -14,7 +14,7 @@ app.post('/ToBOMWarehouse', (req, res) => {
     console.log('Got a POST request, responding and forwarding content to BOMWarehouse')
     res.statusCode = 200;
     res.setHeader('Content-Type', 'application/json');
-    console.log(`${req.body}`)
+    console.log(`${req.body.content}`)
     res.send(req.body);
 })
 
