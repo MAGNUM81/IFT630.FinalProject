@@ -18,7 +18,7 @@
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\WorkOrderManager\bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -46,6 +46,9 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="..\BOMOrderManager\DeliveryOrder.cs">
+      <Link>DeliveryOrder.cs</Link>
+    </Compile>
     <Compile Include="..\WorkOrderManager\HttpClientLayer.cs">
       <Link>HttpClientLayer.cs</Link>
     </Compile>
@@ -55,6 +58,12 @@
     <Compile Include="..\WorkOrderManager\WorkOrder.cs">
       <Link>WorkOrder.cs</Link>
     </Compile>
+    <Compile Include="BackupInstance.cs" />
+    <Compile Include="BackupManager.cs" />
+    <Compile Include="ConveyorBelt.cs" />
+    <Compile Include="ItemProd.cs" />
+    <Compile Include="Machine.cs" />
+    <Compile Include="ProductionAreaManager.cs" />
     <Compile Include="ProductionAreaServer.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
