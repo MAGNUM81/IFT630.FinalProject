@@ -82,6 +82,7 @@ namespace WorkOrderManager
 			System.IO.Stream body = request.InputStream;
 			System.Text.Encoding encoding = request.ContentEncoding;
 			System.IO.StreamReader reader = new System.IO.StreamReader(body, encoding);
+			
 			if (request.ContentType != null)
 			{
 				Console.WriteLine("Client data content type {0}", request.ContentType);
@@ -93,7 +94,7 @@ namespace WorkOrderManager
 			var all = reader.ReadToEnd();
 			Console.WriteLine(all);
 			Console.WriteLine("End of client data:");
-
+			var strResponse = "";
 			if (isrc == (int)Message.ApprovedEndpoint.Carrier)
 			{
 			}
@@ -102,7 +103,8 @@ namespace WorkOrderManager
 			context.Response.ContentType = "application/json";
 			
 			context.Response.AddHeader("Date", DateTime.Now.ToString("r"));
-			byte[] buffer = new byte[1024 * 16];
+			context.Response.ContentEncoding = encoding;
+			var buffer = encoding.GetBytes(strResponse);
 			context.Response.OutputStream.BeginWrite(buffer, 0, buffer.Length, finishedWriteCallBack, context);
 		}
 

@@ -100,6 +100,7 @@ namespace Carrier
 
 			Console.WriteLine("::End of client data::");
 			Message m = new Message();
+			var strResponse = "";
 			var isrc = int.MinValue;
 			try
 			{
@@ -120,7 +121,7 @@ namespace Carrier
 				thread.Start();
 				//If the thread fails, we will not know about it. Therefore the response has to be positive. So we don't have any fast way to notify the requester that the operation failed.
 				//we could still validate some more data before starting the thread though.
-				var strResponse = Message.ToJson(m);
+				strResponse = Message.ToJson(m);
 				context.Response.Headers.Add("Content", strResponse);
 				context.Response.ContentLength64 = strResponse.Length;
 				context.Response.StatusCode = (int)HttpStatusCode.OK;
@@ -134,7 +135,7 @@ namespace Carrier
 				//If the thread fails, we will not know about it. Therefore the response has to be positive. So we don't have any fast way to notify the requester that the operation failed.
 				//we could still validate some more data before starting the thread though.
 
-				var strResponse = Message.ToJson(m);
+				strResponse = Message.ToJson(m);
 				context.Response.Headers.Add("Content", strResponse);
 				context.Response.ContentLength64 = strResponse.Length;
 				context.Response.StatusCode = (int)HttpStatusCode.OK;
@@ -151,8 +152,7 @@ namespace Carrier
 				m.source = Message.ApprovedEndpoint.Carrier;
 				m.destination = Message.ApprovedEndpoint.Carrier;
 				m.content = "Error. Your request was not formatted correctly.";
-				var strResponse = Message.ToJson(m);
-				context.Response.Headers.Add("Content", strResponse);
+				strResponse = Message.ToJson(m);
 				context.Response.ContentLength64 = strResponse.Length;
 				context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
 
@@ -160,7 +160,8 @@ namespace Carrier
 			//Adding permanent http response headers
 			context.Response.ContentType = "application/json";
 			context.Response.AddHeader("Date", DateTime.Now.ToString("r"));
-			byte[] buffer = new byte[1024 * 16];
+			context.Response.ContentEncoding = encoding;
+			var buffer = encoding.GetBytes(strResponse);
 			context.Response.ContentLength64 = buffer.Length;
 			context.Response.OutputStream.BeginWrite(buffer, 0, buffer.Length, finishedWriteCallBack, context);
 		}

@@ -7,7 +7,7 @@ namespace Carrier
 	{
 		private static void Main(string[] args)
 		{
-
+			Console.Title = "Carrier Service.";
 			CarrierServer server = null;
 			int port = 8082;
 			var folder = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "2_Carrier");

@@ -61,7 +61,7 @@
     <Compile Include="BackupInstance.cs" />
     <Compile Include="BackupManager.cs" />
     <Compile Include="ConveyorBelt.cs" />
-    <Compile Include="ItemProd.cs" />
+    <Compile Include="ProductionAreaEventArgs.cs" />
     <Compile Include="Machine.cs" />
     <Compile Include="ProductionAreaManager.cs" />
     <Compile Include="ProductionAreaServer.cs" />

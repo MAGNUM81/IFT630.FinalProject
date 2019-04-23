@@ -9,6 +9,7 @@ namespace WorkOrderManager
 	{
 		public const string name = "1";
 		private const string help = "This is the help manual.";
+
 		private string action = "";
 		private string type = "";
 		private uint complexity = 1;
@@ -41,6 +42,7 @@ namespace WorkOrderManager
 
 		private static void Main(string[] args)
 		{
+			Console.Title = "WorkOrder Manager - Main Console";
 			Console.WriteLine("Hello, Subject!\n\tToday, we will make some painted chairs! Type \"help\" to get started.");
 			path = AppDomain.CurrentDomain.BaseDirectory;
 			folder = Path.Combine(path, "0_WorkOrderManager");

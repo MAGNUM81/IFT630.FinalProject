@@ -12,7 +12,7 @@ namespace BOMOrderManager
 		static void Main(string[] args)
 		{
 			
-			
+			Console.Title = "Initial Warehouse";
 			BOMOrderManagerServer server = null;
 			int port = 8081;
 			path = AppDomain.CurrentDomain.BaseDirectory;

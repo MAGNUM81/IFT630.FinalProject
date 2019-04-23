@@ -1,8 +1,8 @@
 ﻿using System;
 using System.Net;
-using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using BOMOrderManager;
 using WorkOrderManager;
 
 namespace ProductionArea
@@ -30,20 +30,6 @@ namespace ProductionArea
 			this.Initialize(path, port);
 		}
 
-		/// <summary>
-		/// Construct server with suitable port.
-		/// </summary>
-		/// <param name="path">Directory path to serve.</param>
-		public ProductionAreaServer(string path)
-		{
-			//get an empty port
-			TcpListener l = new TcpListener(IPAddress.Loopback, 0);
-			l.Start();
-			int port = ((IPEndPoint)l.LocalEndpoint).Port;
-			l.Stop();
-			this.Initialize(path, port);
-		}
-
 		private void Initialize(string path, int port)
 		{
 			this._rootDirectory = path;
@@ -58,7 +44,7 @@ namespace ProductionArea
 		public void Stop()
 		{
 			_serverThread.Abort();
-			_listener.Stop();
+			_listener?.Stop();
 		}
 
 		private void Listen()
@@ -70,7 +56,7 @@ namespace ProductionArea
 			{
 				try
 				{
-					HttpListenerContext context = _listener.GetContext();
+					var context = _listener.GetContext();
 					Process(context);
 				}
 				catch (Exception ex)
@@ -112,16 +98,15 @@ namespace ProductionArea
 				Console.WriteLine(e.Message);
 			}
 
-
+			var strResponse = "";
 			if (isrc == (int)Message.ApprovedEndpoint.Carrier)
 			{
 				//Create a response
-				Thread thread = new Thread(() => ProcessBOMDelivery(m));
+				Thread thread = new Thread(() => ProcessCarrierRequest(m));
 				thread.Start();
 				//If the thread fails, we will not know about it. Therefore the response has to be positive. So we don't have any fast way to notify the requester that the operation failed.
 				//we could still validate some more data before starting the thread though.
-				var strResponse = Message.ToJson(m);
-				context.Response.Headers.Add("Content", strResponse);
+				strResponse = Message.ToJson(m);
 				context.Response.ContentLength64 = strResponse.Length;
 				context.Response.StatusCode = (int)HttpStatusCode.OK;
 			}
@@ -134,41 +119,60 @@ namespace ProductionArea
 				//If the thread fails, we will not know about it. Therefore the response has to be positive. So we don't have any fast way to notify the requester that the operation failed.
 				//we could still validate some more data before starting the thread though.
 
-				var strResponse = Message.ToJson(m);
+				strResponse = Message.ToJson(m);
 				context.Response.Headers.Add("Content", strResponse);
 				context.Response.ContentLength64 = strResponse.Length;
 				context.Response.StatusCode = (int)HttpStatusCode.OK;
 			}
 			else
 			{
-				//isrc has an unknown value. Can't do anything with that.	
-				Message error = new Message();
+				//isrc has an unknown or invalid value for the context. Can't do anything with that.
 				m.action = Message.NetworkAction.Error;
 				m.source = Message.ApprovedEndpoint.Carrier;
 				m.destination = Message.ApprovedEndpoint.Carrier;
 				m.content = "Error. Your request was not formatted correctly.";
-				var strResponse = Message.ToJson(m);
-				context.Response.Headers.Add("Content", strResponse);
+				strResponse = Message.ToJson(m);
 				context.Response.ContentLength64 = strResponse.Length;
 				context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
 
 			}
 			//Adding permanent http response headers
 			context.Response.ContentType = "application/json";
+
 			context.Response.AddHeader("Date", DateTime.Now.ToString("r"));
-			byte[] buffer = new byte[1024 * 16];
+			context.Response.ContentEncoding = encoding;
+			var buffer = encoding.GetBytes(strResponse);
 			context.Response.ContentLength64 = buffer.Length;
-			context.Response.OutputStream.BeginWrite(buffer, 0, buffer.Length, finishedWriteCallBack, context);
+			context.Response.OutputStream.BeginWrite(buffer, 0, buffer.Length, FinishedWriteCallBack, context);
 		}
 
 		private void ProcessWorkOrderManagerRequest(Message m)
 		{
-			//Normally called within a child thread. Do not call this in the main thread or it might block the server for an undefinite time
-			//We don't need to parse anything here. Just forward the message to the ProductionArea with some new shiny flags.
-
+			//should be executed in a child thread.
+			//Extract the WorkOrder from the message
+			WorkOrder wo = new WorkOrder();
+			try
+			{
+				wo = WorkOrder.FromJson(m.content);
+			}catch(Exception e)
+			{
+				Console.WriteLine("This WorkOrder isn't formatted correctly. Cancelling order 66.");
+				Console.WriteLine(e.Message);
+				Thread.CurrentThread.Abort();
+			}
+			
+			//Send it to the ProductionAreaManager for its records (fire "Events")
+			var pae = new ProductionAreaEventArgs
+			{
+				action = ProductionAction.None, //Means no physical action in the factory is actually done. Just data passing through.
+				idWorkOrder = wo.idWorkOrder,
+				anythingElse = wo //This may be bad architecture-wise, but we've seen worse didn't we?
+			};
+			
+			Events?.Invoke(this, pae); //The Manager doesn't need to be "ready" to process anything since we are sending it data for its logs
 		}
 
-		private async void SendToCarrier(Message m)
+		private static async void SendToCarrier(Message m)
 		{
 			//Normally called within a child thread. Do not call this in the main thread or it might block the server for an undefinite time
 			try
@@ -189,7 +193,7 @@ namespace ProductionArea
 			}
 		}
 
-		private void finishedWriteCallBack(IAsyncResult result)
+		private static void FinishedWriteCallBack(IAsyncResult result)
 		{
 			var ctx = (HttpListenerContext)result.AsyncState;
 			ctx.Response.OutputStream.EndWrite(result);
@@ -197,20 +201,38 @@ namespace ProductionArea
 			ctx.Response.OutputStream.Close();
 		}
 
-		private void ProcessBOMDelivery(Message m)
+		private static void ProcessCarrierRequest(Message m)
 		{
 			//Normally called within a child thread. Do not call this in the main thread or it might block the server for an undefinite time
+			//Send a request to the WOManager that will contain the WorkOrder associated with the idWorkOrder in the DeliveryOrder
+			Console.WriteLine("Fetching the work order from the WorkOrderManager...");
+			DeliveryOrder deliveryOrder = null;
+			try
+			{
+				deliveryOrder = DeliveryOrder.FromJson(m.content);
+			}catch(Exception)
+			{
+				Console.WriteLine("The delivery order was not formatted correctly. We have to cancel the Winter Contingency Protocol.");
+				Thread.CurrentThread.Abort();
+			}
+			
+			if(deliveryOrder == null)
+			{
+				Console.WriteLine("The JSON parsing of the DeliveryOrder failed silently " +
+				                  "OR The DeliveryOrder did not contain enough data. Either way we must end the show.");
+				return;
+			}
 
-			//We don't need to parse anything here. Just forward the message to the BOMWarehouse with some new shiny flags
-			m.destination = Message.ApprovedEndpoint.BOMWarehouse;
-			m.source = Message.ApprovedEndpoint.Carrier;
-
+			Message toWOManager = new Message {action = Message.NetworkAction.Fetch};
+			WorkOrder wo = new WorkOrder {idWorkOrder = deliveryOrder.idWorkOrder};
+			toWOManager.content = wo.ToString(); //We send a WorkOrder skeleton to the WorkOrderManager so it can fill it with juicy data.
+			SendToWorkOrderManager(toWOManager);
+			//Our work here is done. We might receive something one day, but at least we are not blocking anyone.
 		}
 
-		private async void SendToWorkOrderManager(Message m)
+		private static async void SendToWorkOrderManager(Message m)
 		{
 			//Normally called within a child thread. Do not call this in the main thread or it might block the server for an undefinite time
-
 			try
 			{
 				var response = await HttpClientLayer.getInstance().Post("http://127.0.0.1:8080/", m);
@@ -227,6 +249,45 @@ namespace ProductionArea
 			{
 				Console.WriteLine(e.Message);
 			}
+		}
+
+		public event EventHandler<ProductionAreaEventArgs> Events;
+
+		public void OnProductionAreaManagerEvent(object sender, ProductionAreaEventArgs e)
+		{
+			switch (e.action)
+			{
+				case ProductionAction.Ready:
+					//Send some items this way
+					break;
+				case ProductionAction.Done:
+					//Got some items to send to FinalWarehouse via Carrier
+					var deliveryOrder = new DeliveryOrder(e.idWorkOrder);
+					foreach (var toSend in e.items)
+					{
+						if(!deliveryOrder.items.ContainsKey(toSend))
+						{
+							deliveryOrder.items[toSend] = 0;
+						}
+						deliveryOrder.items[toSend] += 1;
+					}
+					var toCarrier = new Message
+					{
+						content = deliveryOrder.ToString(),
+						action = Message.NetworkAction.Delivery,
+						source = Message.ApprovedEndpoint.ProductionArea,
+						destination = Message.ApprovedEndpoint.FinalWarehouse
+					};
+					var sendingJob = new Thread(() => SendToCarrier(toCarrier)); //Just to make sure we don't block on this one.
+					sendingJob.Start();
+					break;
+			}
+		}
+
+		public void Subscribe(ProductionAreaManager pam)
+		{
+			Console.WriteLine("Server Subscribed to Manager");
+			pam.ServerEvents += OnProductionAreaManagerEvent;
 		}
 	}
 }

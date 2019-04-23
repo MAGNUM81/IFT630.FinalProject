@@ -9,6 +9,7 @@ namespace ProductionArea
 {
 	internal class BackupManager
 	{
+		//TODO : all this is a bit dumb. Fix it asap
 		private static string backupFilePath;
 		private static Queue<string> toWrite;
 		private readonly Thread backupThread;
@@ -68,7 +69,7 @@ namespace ProductionArea
 
 		public void queueBackupInstances(IEnumerable<BackupInstance> backupInstances)
 		{
-			string strToOverwrite = backupInstances.Aggregate("", (current, bi) => current + BackupInstance.ToJson(bi));
+			var strToOverwrite = backupInstances.Aggregate("", (current, bi) => current + BackupInstance.ToJson(bi));
 			OverwriteAll(strToOverwrite);
 		}
 

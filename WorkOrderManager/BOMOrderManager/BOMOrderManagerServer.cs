@@ -4,6 +4,7 @@ using System.IO;
 using System.Net;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
@@ -94,6 +95,7 @@ namespace BOMOrderManager
 			Console.WriteLine(all);
 			Console.WriteLine("End of client data:");
 			Message m = Message.FromJson(all);
+			var strResponse = "";
 			var isrc = (int)m.source;
 			if (isrc == (int)Message.ApprovedEndpoint.WorkOrderManager)
 			{
@@ -106,7 +108,7 @@ namespace BOMOrderManager
 				thread.Start();
 
 				m.action = Message.NetworkAction.Echo;
-				var strResponse = Message.ToJson(m);
+				strResponse = Message.ToJson(m);
 
 				context.Response.Headers.Add("Content", strResponse);
 				context.Response.ContentLength64 = strResponse.Length;
@@ -120,7 +122,8 @@ namespace BOMOrderManager
 			//Adding permanent http response headers
 			context.Response.ContentType = "application/json";
 			context.Response.AddHeader("Date", DateTime.Now.ToString("r"));
-			byte[] buffer = new byte[1024 * 16];
+			context.Response.ContentEncoding = encoding;
+			var buffer = encoding.GetBytes(strResponse);
 			context.Response.ContentLength64 = buffer.Length;
 			context.Response.OutputStream.BeginWrite(buffer, 0, buffer.Length, finishedWriteCallBack, context);
 		}
