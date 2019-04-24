@@ -1,42 +1,41 @@
-﻿using Newtonsoft.Json;
-using System;
+﻿using System;
 using System.Collections.Generic;
+using Newtonsoft.Json;
 
 namespace WorkOrderManager
 {
 	internal class WorkOrder
 	{
+		public Dictionary<string, uint> FinishedProducts = new Dictionary<string, uint>();
 		public string idWorkOrder = "";
 		public string Name = "";
 		public Dictionary<string, uint> RequiredProducts = new Dictionary<string, uint>();
-		public Dictionary<string, uint> FinishedProducts = new Dictionary<string, uint>();
-		public DateTime timeLaunched = DateTime.Now;
 		public DateTime timeClosed;
-
-		public WorkOrder()
-		{
-
-		}
+		public DateTime timeLaunched;
 
 		public bool ReadyToClose()
 		{
 			foreach (var item in RequiredProducts)
-			{
 				if (FinishedProducts.ContainsKey(item.Key))
 				{
-					if (FinishedProducts[item.Key] != item.Value)
-					{
-						return false;
-					}
+					if (FinishedProducts[item.Key] != item.Value) return false;
 				}
-				else return false;
-			}
+				else
+				{
+					return false;
+				}
+
 			return true;
 		}
 
-		public void close()
+		public void Launch()
 		{
-			this.timeClosed = DateTime.Now;
+			timeLaunched = DateTime.Now;
+		}
+
+		public void Close()
+		{
+			timeClosed = DateTime.Now;
 		}
 
 		public static string ToJson(WorkOrder wo)
@@ -53,6 +52,5 @@ namespace WorkOrderManager
 		{
 			return base.ToString();
 		}
-
 	}
 }

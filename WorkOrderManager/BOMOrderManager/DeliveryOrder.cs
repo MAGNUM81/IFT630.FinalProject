@@ -1,14 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using System.Collections.Generic;
 using Newtonsoft.Json;
-using WorkOrderManager;
 
 namespace BOMOrderManager
 {
-	class DeliveryOrder
+	internal class DeliveryOrder
 	{
 		public string idWorkOrder;
 		public Dictionary<string, uint> items = new Dictionary<string, uint>();

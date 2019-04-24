@@ -16,17 +16,17 @@ namespace ProductionArea
 
 	internal class ConveyorBelt
 	{
+		private readonly Queue<ProductionAreaEventArgs> ToTransform = new Queue<ProductionAreaEventArgs>();
 
 		private ComponentState state;
-
-		public event EventHandler<ProductionAreaEventArgs> EventsMachine;
-		public event EventHandler<ProductionAreaEventArgs> EventsManager;
-		private readonly Queue<ProductionAreaEventArgs> ToTransform = new Queue<ProductionAreaEventArgs>();
 
 		public ConveyorBelt()
 		{
 			state = ComponentState.Idle;
 		}
+
+		public event EventHandler<ProductionAreaEventArgs> EventsMachine;
+		public event EventHandler<ProductionAreaEventArgs> EventsManager;
 
 		public void Start()
 		{
@@ -40,12 +40,12 @@ namespace ProductionArea
 			state = ComponentState.Stopped;
 		}
 
-		public void subscribe(Machine machine)
+		public void Subscribe(Machine machine)
 		{
 			machine.Events += OnMachineEvent;
 		}
 
-		public void subscribe(ProductionAreaManager manager)
+		public void Subscribe(ProductionAreaManager manager)
 		{
 			manager.EventsConveyor += OnManagerEvent;
 		}
@@ -56,11 +56,12 @@ namespace ProductionArea
 			switch (e.action)
 			{
 				case ProductionAction.Ready:
-					if(ToTransform.Count != 0)
+					if (ToTransform.Count != 0)
 					{
 						var args = ToTransform.Dequeue();
 						EventsMachine?.Invoke(this, args);
 					}
+
 					break;
 			}
 		}
@@ -73,7 +74,6 @@ namespace ProductionArea
 				case ProductionAction.Prod:
 					ToTransform.Enqueue(e);
 					break;
-
 			}
 		}
 	}

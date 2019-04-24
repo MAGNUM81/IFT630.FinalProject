@@ -1,20 +1,16 @@
 ﻿using System;
-using System.Collections.Generic;
 using System.Net.Http;
 using System.Threading.Tasks;
 
 namespace WorkOrderManager
 {
-	class HttpClientLayer
+	internal class HttpClientLayer
 	{
-		private static HttpClientLayer INSTANCE = null;
+		private static HttpClientLayer INSTANCE;
+
 		public static HttpClientLayer getInstance()
 		{
 			return INSTANCE ?? (INSTANCE = new HttpClientLayer());
-		}
-
-		public HttpClientLayer()
-		{
 		}
 
 		public async Task<Message> Post(string url, Message message)

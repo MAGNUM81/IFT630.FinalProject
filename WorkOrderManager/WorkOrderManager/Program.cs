@@ -9,12 +9,8 @@ namespace WorkOrderManager
 	{
 		public const string name = "1";
 		private const string help = "This is the help manual.";
-
-		private string action = "";
-		private string type = "";
-		private uint complexity = 1;
-		public static List<WorkOrder> OpenedWorkOrders = new List<WorkOrder>();
-		public static List<WorkOrder> ClosedWorkOrders = new List<WorkOrder>();
+		private static readonly Dictionary<string, WorkOrder> OpenedWorkOrders = new Dictionary<string, WorkOrder>();
+		private static readonly Dictionary<string, WorkOrder> ClosedWorkOrders = new Dictionary<string, WorkOrder>();
 		private static string path;
 		private static string folder;
 		private static string smallfile;
@@ -22,28 +18,40 @@ namespace WorkOrderManager
 		private static string largefile;
 		private static string emptyfile;
 
-		private WorkOrderServer localServer;
+		private readonly WorkOrderServer localServer;
 
-		private Dictionary<string, KeyValuePair<string, string>> serversMap = new Dictionary<string, KeyValuePair<string, string>>();
+		private readonly Dictionary<string, KeyValuePair<string, string>> serversMap =
+			new Dictionary<string, KeyValuePair<string, string>>();
 
-		private static class Action
+		private string action = "";
+		private uint complexity = 1;
+		private string type = "";
+
+		public Program()
 		{
-			public const string Create = "create";
-			public const string Help = "help";
-		}
-
-		private static class WorkOrderFileType
-		{
-			public const string small = "small";
-			public const string medium = "medium";
-			public const string large = "large";
-			public const string empty = "empty";
+			var exeWarehouse1 = Path.Combine(path, "BOMOrderManager.exe");
+			const string folderWarehouse1 = "1_BOMOrderManager";
+			var exeCarrier = Path.Combine(path, "Carrier.exe");
+			const string folderCarrier = "2_Carrier";
+			var exeProductionArea = Path.Combine(path, "ProductionArea.exe");
+			const string folderProductionArea = "3_ProductionArea";
+			var exeWarehouse2 = Path.Combine(path, "FinalWarehouse.exe");
+			const string folderWareHouse2 = "4_FinalWarehouse";
+			serversMap.Add(exeWarehouse1,
+				new KeyValuePair<string, string>(folderWarehouse1, "8081")); //Start executable with parameters
+			serversMap.Add(exeCarrier, new KeyValuePair<string, string>(folderCarrier, "8082"));
+			serversMap.Add(exeProductionArea,
+				new KeyValuePair<string, string>(folderProductionArea, "8083")); //Start executable with parameters
+			serversMap.Add(exeWarehouse2,
+				new KeyValuePair<string, string>(folderWareHouse2, "8084")); //Start executable with parameters
+			localServer = new WorkOrderServer(folder, 8080);
 		}
 
 		private static void Main(string[] args)
 		{
 			Console.Title = "WorkOrder Manager - Main Console";
-			Console.WriteLine("Hello, Subject!\n\tToday, we will make some painted chairs! Type \"help\" to get started.");
+			Console.WriteLine(
+				"Hello, Subject!\n\tToday, we will make some painted chairs! Type \"help\" to get started.");
 			path = AppDomain.CurrentDomain.BaseDirectory;
 			folder = Path.Combine(path, "0_WorkOrderManager");
 
@@ -54,9 +62,9 @@ namespace WorkOrderManager
 			var p = new Program();
 			try
 			{
-				p.run();
+				p.Start();
 			}
-			catch(Exception e)
+			catch (Exception e)
 			{
 				Console.WriteLine(e.Message);
 			}
@@ -64,48 +72,22 @@ namespace WorkOrderManager
 			{
 				Console.Write("It is your last chance to save me: ");
 				Console.ReadLine();
-				p.cleanUpAndClose();
+				p.CleanUpAndClose();
 			}
-			
 		}
 
-		public Program()
-		{
-			var exeWarehouse1 = Path.Combine(path, "BOMOrderManager.exe");
-			var folderWarehouse1 = "1_BOMOrderManager";
-			var exeCarrier = Path.Combine(path, "Carrier.exe");
-			var folderCarrier = "2_Carrier";
-			var exeProductionArea = Path.Combine(path, "ProductionArea.exe");
-			var folderProductionArea = "3_ProductionArea";
-			var exeWarehouse2 = Path.Combine(path, "FinalWarehouse.exe");
-			var folderWareHouse2 = "4_FinalWarehouse";
-			serversMap.Add(exeWarehouse1, new KeyValuePair<string, string>(folderWarehouse1, "8081"));          //Start executable with parameters
-			serversMap.Add(exeCarrier, new KeyValuePair<string, string>(folderCarrier, "8082"));
-			serversMap.Add(exeProductionArea, new KeyValuePair<string, string>(folderProductionArea, "8083"));  //Start executable with parameters
-			serversMap.Add(exeWarehouse2, new KeyValuePair<string, string>(folderWareHouse2, "8084"));          //Start executable with parameters
-			localServer = new WorkOrderServer(folder, 8080);
-		}
-
-		private void cleanUpAndClose()
+		private void CleanUpAndClose()
 		{
 			Console.WriteLine("Intenting to save the world from total destruction.");
 			localServer.Stop();
 		}
 
-		private void run()
+		private void Start()
 		{
-			
-
-			
-
-
 			foreach (var server in serversMap)
-			{
 				try
 				{
-					var p = new Process();
-					var s = new ProcessStartInfo();
-					s.Arguments = server.Value.Key + " " + server.Value.Value;
+					var s = new ProcessStartInfo {Arguments = server.Value.Key + " " + server.Value.Value};
 					var process = new Process
 					{
 						StartInfo = new ProcessStartInfo
@@ -124,7 +106,6 @@ namespace WorkOrderManager
 					Console.WriteLine("Could not start this process : {0}", Path.GetFileName(server.Key));
 					Console.WriteLine(e.Message);
 				}
-			}
 
 
 			while (true)
@@ -132,23 +113,30 @@ namespace WorkOrderManager
 				var readContent = Console.ReadLine();
 				if (readContent is null) continue;
 				var argv = readContent.Split();
-				handleArguments(argv); //MAJ action, type, complexity
+				HandleArguments(argv); //MAJ action, type, complexity
 				ExecuteAction(action, type, complexity);
-
 			}
 		}
-		private async void ExecuteAction(string act, string t, uint comp)
+
+		private static async void ExecuteAction(string act, string t, uint comp)
 		{
 			switch (act)
 			{
 				case Action.Create:
-					//TODO: start a thread, listening to the BOM Warehouse via HTTP
 					for (var i = 1; i <= comp; ++i)
 					{
-						Console.WriteLine("Executing action \"{0}\" of type \"{1}\", {2}", act, Path.GetFileName(t).Split('.')[0], i);
+						Console.WriteLine("Executing action \"{0}\" of type \"{1}\", {2}", act,
+							Path.GetFileName(t).Split('.')[0], i);
 						var wo = WorkOrder.FromJson(File.ReadAllText(t));
+						wo.idWorkOrder += i;
+						wo.timeLaunched = DateTime.Now;
+						while (OpenedWorkOrders.ContainsKey(wo.idWorkOrder))
+							//To spare ourselves from missing or phantom WorkOrders
+							wo.idWorkOrder += i;
+
 						var strwo = WorkOrder.ToJson(wo);
-						Message m = new Message
+
+						var m = new Message
 						{
 							action = Message.NetworkAction.Forward,
 							source = Message.ApprovedEndpoint.WorkOrderManager,
@@ -157,7 +145,7 @@ namespace WorkOrderManager
 						};
 						try
 						{
-							var response = await HttpClientLayer.getInstance().Post("http://127.0.0.1:8081", m);
+							var response = await HttpClientLayer.getInstance().Post("http://127.0.0.1:8081/", m);
 							Console.WriteLine("Received response: {0}", response.content);
 						}
 						catch (Exception e)
@@ -176,10 +164,9 @@ namespace WorkOrderManager
 			}
 		}
 
-		private void handleArguments(IReadOnlyList<string> argv)
+		private void HandleArguments(IReadOnlyList<string> argv)
 		{
 			for (var i = 0; i < argv.Count; ++i)
-			{
 				switch (i)
 				{
 					case 0:
@@ -193,6 +180,7 @@ namespace WorkOrderManager
 								action = help;
 								break;
 						}
+
 						break;
 					case 1:
 						switch (argv[i])
@@ -203,7 +191,7 @@ namespace WorkOrderManager
 							case WorkOrderFileType.small: // start a small WO - 1 item with 1 BOM
 								type = smallfile;
 								break;
-							case WorkOrderFileType.medium:// start a medium WO - 1 item with 2 BOMs
+							case WorkOrderFileType.medium: // start a medium WO - 1 item with 2 BOMs
 								type = mediumfile;
 								break;
 							case WorkOrderFileType.large: // start a large WO - 1 item with 3 BOMs
@@ -228,14 +216,47 @@ namespace WorkOrderManager
 							action = Action.Help;
 							complexity = 1;
 						}
+
 						break;
 
 					default:
 						action = Action.Help;
 						break;
 				}
-			}
 		}
 
+		public static WorkOrder GetWorkOrder(string idWorkOrder)
+		{
+			if (!OpenedWorkOrders.ContainsKey(idWorkOrder))
+			{
+				Console.WriteLine("The requested WorkOrder is not opened in the current context.");
+				return null;
+			}
+
+			var retOrder = OpenedWorkOrders[idWorkOrder];
+			return retOrder;
+		}
+
+		public static void CloseWorkOrder(string idWorkOrder)
+		{
+			var toClose = GetWorkOrder(idWorkOrder);
+			toClose.Close();
+			OpenedWorkOrders.Remove(idWorkOrder);
+			ClosedWorkOrders[idWorkOrder] = toClose;
+		}
+
+		private static class Action
+		{
+			public const string Create = "create";
+			public const string Help = "help";
+		}
+
+		private static class WorkOrderFileType
+		{
+			public const string small = "small";
+			public const string medium = "medium";
+			public const string large = "large";
+			public const string empty = "empty";
+		}
 	}
 }

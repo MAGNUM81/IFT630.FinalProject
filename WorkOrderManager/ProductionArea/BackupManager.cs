@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using System.Text;
 using System.Threading;
 
 namespace ProductionArea
@@ -12,8 +11,9 @@ namespace ProductionArea
 		//TODO : all this is a bit dumb. Fix it asap
 		private static string backupFilePath;
 		private static Queue<string> toWrite;
-		private readonly Thread backupThread;
 		private static bool aborting;
+		private readonly Thread backupThread;
+
 		public BackupManager(string filepath)
 		{
 			backupFilePath = filepath;
@@ -34,6 +34,7 @@ namespace ProductionArea
 						var s = toWrite.Dequeue();
 						_write(s);
 					}
+
 					break;
 				}
 
@@ -45,7 +46,8 @@ namespace ProductionArea
 
 		private static void _write(string s)
 		{
-			using (var newTask = new StreamWriter("test.txt", false)){ 
+			using (var newTask = new StreamWriter("test.txt", false))
+			{
 				newTask.WriteLine(s);
 			}
 		}
@@ -64,7 +66,8 @@ namespace ProductionArea
 		{
 			Console.WriteLine("The BackupManager is closing down.");
 			aborting = true;
-			backupThread.Join(); //Force the writing queue to be emptied. TODO : We could put a timeout here, just in case.
+			backupThread
+				.Join(); //Force the writing queue to be emptied. TODO : We could put a timeout here, just in case.
 		}
 
 		public void queueBackupInstances(IEnumerable<BackupInstance> backupInstances)
@@ -72,6 +75,5 @@ namespace ProductionArea
 			var strToOverwrite = backupInstances.Aggregate("", (current, bi) => current + BackupInstance.ToJson(bi));
 			OverwriteAll(strToOverwrite);
 		}
-
 	}
 }
