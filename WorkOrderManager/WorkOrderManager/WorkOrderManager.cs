@@ -5,7 +5,7 @@ using System.IO;
 
 namespace WorkOrderManager
 {
-	internal class Program
+	internal class WorkOrderManager
 	{
 		public const string name = "1";
 		private const string help = "This is the help manual.";
@@ -27,7 +27,7 @@ namespace WorkOrderManager
 		private uint complexity = 1;
 		private string type = "";
 
-		public Program()
+		public WorkOrderManager()
 		{
 			var exeWarehouse1 = Path.Combine(path, "BOMOrderManager.exe");
 			const string folderWarehouse1 = "1_BOMOrderManager";
@@ -59,7 +59,7 @@ namespace WorkOrderManager
 			mediumfile = Path.Combine(folder, "medium.json");
 			largefile = Path.Combine(folder, "large.json");
 			emptyfile = Path.Combine(folder, "empty.json");
-			var p = new Program();
+			var p = new WorkOrderManager();
 			try
 			{
 				p.Start();
@@ -128,11 +128,11 @@ namespace WorkOrderManager
 						Console.WriteLine("Executing action \"{0}\" of type \"{1}\", {2}", act,
 							Path.GetFileName(t).Split('.')[0], i);
 						var wo = WorkOrder.FromJson(File.ReadAllText(t));
-						wo.idWorkOrder += i;
+						wo.idWorkOrder = Guid.NewGuid().ToString();
 						wo.timeLaunched = DateTime.Now;
-						while (OpenedWorkOrders.ContainsKey(wo.idWorkOrder))
-							//To spare ourselves from missing or phantom WorkOrders
-							wo.idWorkOrder += i;
+
+						OpenedWorkOrders[wo.idWorkOrder] = wo;
+						
 
 						var strwo = WorkOrder.ToJson(wo);
 
@@ -243,6 +243,26 @@ namespace WorkOrderManager
 			toClose.Close();
 			OpenedWorkOrders.Remove(idWorkOrder);
 			ClosedWorkOrders[idWorkOrder] = toClose;
+		}
+
+		public static void UpdateWorkOrderItems(string idWorkOrder, Dictionary<string, uint> items)
+		{
+			if(!OpenedWorkOrders.ContainsKey(idWorkOrder))
+			{
+				Console.WriteLine("The work order could not be updated : there is no key assigned to it in the storage unit");
+			}
+			else
+			{
+				foreach(var product in items)
+				{
+					if(!OpenedWorkOrders[idWorkOrder].FinishedProducts.ContainsKey(product.Key))
+					{
+						OpenedWorkOrders[idWorkOrder].FinishedProducts[product.Key] = 0;
+					}
+					OpenedWorkOrders[idWorkOrder].FinishedProducts[product.Key] += product.Value;
+				}
+			}
+
 		}
 
 		private static class Action

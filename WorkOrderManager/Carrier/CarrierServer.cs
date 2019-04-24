@@ -138,6 +138,18 @@ namespace Carrier
 			}
 			else if (isrc == (int) Message.ApprovedEndpoint.ProductionArea)
 			{
+				//Forward the Message to the FinalWarehouse
+				//Here we are supposed to have received a valid DeliveryRequest that respects its WorkOrder's Finished products
+				//Create a response
+				var thread = new Thread(() => ProcessAndDeliverToFinalWarehouse(m));
+				thread.Start();
+				//If the thread fails, we will not know about it. Therefore the response has to be positive. So we don't have any fast way to notify the requester that the operation failed.
+				//we could still validate some more data before starting the thread though.
+
+				strResponse = Message.ToJson(m);
+				context.Response.Headers.Add("Content", strResponse);
+				context.Response.ContentLength64 = strResponse.Length;
+				context.Response.StatusCode = (int) HttpStatusCode.OK;
 			}
 			else
 			{
@@ -159,6 +171,24 @@ namespace Carrier
 			var buffer = encoding.GetBytes(strResponse);
 			context.Response.ContentLength64 = buffer.Length;
 			context.Response.OutputStream.BeginWrite(buffer, 0, buffer.Length, finishedWriteCallBack, context);
+		}
+
+		private static void ProcessAndDeliverToFinalWarehouse(Message m)
+		{
+			//Normally called within a child thread. Do not call this in the main thread or it might block the server for an undefinite time
+			//We don't need to parse anything here. Just forward the message to the ProductionArea with some new shiny flags.
+			m.source = Message.ApprovedEndpoint.Carrier;
+			m.destination = Message.ApprovedEndpoint.FinalWarehouse;
+
+			//Simulate the processing time needed from the moment a validated order has arrived to the moment
+			//	it is sent from the plant to the Production area.
+			for (var i = 0; i < 3; ++i)
+			{
+				Console.WriteLine(i == 0 ? "Delivering validated order to Final Warehouse ..." : "...");
+				Thread.Sleep(1000);
+			}
+
+			SendToFinalWarehouse(m);
 		}
 
 		private void ProcessAndDeliverToProductionArea(Message m)
@@ -228,7 +258,7 @@ namespace Carrier
 			SendToBOMWarehouse(m);
 		}
 
-		private async void SendToBOMWarehouse(Message m)
+		private static async void SendToBOMWarehouse(Message m)
 		{
 			//Normally called within a child thread. Do not call this in the main thread or it might block the server for an undefinite time
 
@@ -242,6 +272,28 @@ namespace Carrier
 				Console.WriteLine(tce.Message);
 				Console.WriteLine("Something went wrong while communicating with the BOMWarehouse.");
 				Console.WriteLine("The BOMWarehouse might be down or unstable right now.");
+				Console.WriteLine("Feel free to try again later!");
+			}
+			catch (Exception e)
+			{
+				Console.WriteLine(e.Message);
+			}
+		}
+
+		private static async void SendToFinalWarehouse(Message m)
+		{
+			//Normally called within a child thread. Do not call this in the main thread or it might block the server for an undefinite time
+
+			try
+			{
+				var response = await HttpClientLayer.getInstance().Post("http://127.0.0.1:8084/", m);
+				Console.WriteLine("Got a response from the FinalWarehouse! Content : {0}", response.content);
+			}
+			catch (TaskCanceledException tce)
+			{
+				Console.WriteLine(tce.Message);
+				Console.WriteLine("Something went wrong while communicating with the FinalWarehouse.");
+				Console.WriteLine("The FinalWarehouse might be down or unstable right now.");
 				Console.WriteLine("Feel free to try again later!");
 			}
 			catch (Exception e)

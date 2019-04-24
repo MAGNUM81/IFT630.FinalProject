@@ -108,7 +108,7 @@ namespace BOMOrderManager
 			else if (isrc == (int) Message.ApprovedEndpoint.Carrier)
 			{
 				//When we get the delivery
-				//We Validate the package with the WorkOrderManager to see if it corresponds to the WorkOrder
+				//We CloseWorkOrder the package with the WorkOrderManager to see if it corresponds to the WorkOrder
 				//We send it back to the Carrier, but this time to deliver it to the ProductionArea
 			}
 

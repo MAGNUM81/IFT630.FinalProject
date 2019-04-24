@@ -1,10 +1,10 @@
-﻿using System;
+﻿using BOMOrderManager;
+using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
-using BOMOrderManager;
 using WorkOrderManager;
 
 namespace ProductionArea
@@ -91,7 +91,7 @@ namespace ProductionArea
 			try
 			{
 				m = Message.FromJson(all);
-				isrc = (int) m.source;
+				isrc = (int)m.source;
 			}
 			catch (Exception e)
 			{
@@ -102,32 +102,31 @@ namespace ProductionArea
 			var strResponse = "";
 			switch (isrc)
 			{
-				case (int) Message.ApprovedEndpoint.Carrier:
-				{
-					//Create a response
-					var thread = new Thread(() => ProcessCarrierRequest(m));
-					thread.Start();
-					//If the thread fails, we will not know about it. Therefore the response has to be positive. So we don't have any fast way to notify the requester that the operation failed.
-					//we could still validate some more data before starting the thread though.
-					strResponse = Message.ToJson(m);
-					context.Response.ContentLength64 = strResponse.Length;
-					context.Response.StatusCode = (int) HttpStatusCode.OK;
-					break;
-				}
-				case (int) Message.ApprovedEndpoint.WorkOrderManager:
-				{
-					//Here we are supposed to have received a valid DeliveryRequest that respects its WorkOrder's requirements
-					var thread = new Thread(() => ProcessWorkOrderManagerRequest(m));
-					thread.Start();
-					//If the thread fails, we will not know about it. Therefore the response has to be positive. So we don't have any fast way to notify the requester that the operation failed.
-					//we could still validate some more data before starting the thread though.
-					//Create a response
-					strResponse = Message.ToJson(m);
-					context.Response.Headers.Add("Content", strResponse);
-					context.Response.ContentLength64 = strResponse.Length;
-					context.Response.StatusCode = (int) HttpStatusCode.OK;
-					break;
-				}
+				case (int)Message.ApprovedEndpoint.Carrier:
+					{
+						//Create a response
+						var thread = new Thread(() => ProcessCarrierRequest(m));
+						thread.Start();
+						//If the thread fails, we will not know about it. Therefore the response has to be positive. So we don't have any fast way to notify the requester that the operation failed.
+						//we could still validate some more data before starting the thread though.
+						strResponse = Message.ToJson(m);
+						context.Response.ContentLength64 = strResponse.Length;
+						context.Response.StatusCode = (int)HttpStatusCode.OK;
+						break;
+					}
+				case (int)Message.ApprovedEndpoint.WorkOrderManager:
+					{
+						//Here we are supposed to have received a valid DeliveryRequest that respects its WorkOrder's requirements
+						var thread = new Thread(() => ProcessWorkOrderManagerRequest(m));
+						thread.Start();
+						//If the thread fails, we will not know about it. Therefore the response has to be positive. So we don't have any fast way to notify the requester that the operation failed.
+						//we could still validate some more data before starting the thread though.
+						//Create a response
+						strResponse = Message.ToJson(m);
+						context.Response.ContentLength64 = strResponse.Length;
+						context.Response.StatusCode = (int)HttpStatusCode.OK;
+						break;
+					}
 				default:
 					//isrc has an unknown or invalid value for the context. Can't do anything with that.
 					m.action = Message.NetworkAction.Error;
@@ -136,7 +135,7 @@ namespace ProductionArea
 					m.content = "Error. Your request was not formatted correctly.";
 					strResponse = Message.ToJson(m);
 					context.Response.ContentLength64 = strResponse.Length;
-					context.Response.StatusCode = (int) HttpStatusCode.BadRequest;
+					context.Response.StatusCode = (int)HttpStatusCode.BadRequest;
 					break;
 			}
 
@@ -169,12 +168,11 @@ namespace ProductionArea
 			//Send it to the ProductionAreaManager for its records (fire "Events")
 			var pae = new ProductionAreaEventArgs
 			{
-				action = ProductionAction
-					.None, //Means no physical action in the factory is actually done. Just data passing through.
+				action = ProductionAction.None, //Means no physical action in the factory is actually done. Just data passing through.
 				idWorkOrder = wo.idWorkOrder,
 				anythingElse = wo //This may be bad architecture-wise, but we've seen worse didn't we?
 			};
-
+			Console.WriteLine("Server sending WorkOrder to Manager");
 			Events?.Invoke(this,
 				pae); //The Manager doesn't need to be "ready" to process anything since we are sending it data for its logs
 		}
@@ -202,7 +200,7 @@ namespace ProductionArea
 
 		private static void FinishedWriteCallBack(IAsyncResult result)
 		{
-			var ctx = (HttpListenerContext) result.AsyncState;
+			var ctx = (HttpListenerContext)result.AsyncState;
 			ctx.Response.OutputStream.EndWrite(result);
 			ctx.Response.OutputStream.Flush();
 			ctx.Response.OutputStream.Close();
@@ -228,7 +226,7 @@ namespace ProductionArea
 			if (deliveryOrder == null)
 			{
 				Console.WriteLine("The JSON parsing of the DeliveryOrder failed silently " +
-				                  "OR The DeliveryOrder did not contain enough data. Either way we must end the show.");
+								  "OR The DeliveryOrder did not contain enough data. Either way we must end the show.");
 				return;
 			}
 
@@ -240,11 +238,15 @@ namespace ProductionArea
 				foreach (var item in deliveryOrder.items)
 					IngressWarehouse[strIdWorkOrder].items[item.Key] += 1;
 
-			var toWOManager = new Message {action = Message.NetworkAction.Fetch};
-			var wo = new WorkOrder {idWorkOrder = strIdWorkOrder};
-			toWOManager.content =
-				WorkOrder.ToJson(
-					wo); //We send a WorkOrder skeleton to the WorkOrderManager so it can fill it with juicy data.
+			var toWOManager = new Message
+			{
+				action = Message.NetworkAction.Fetch, 
+				source = Message.ApprovedEndpoint.ProductionArea, 
+				destination = Message.ApprovedEndpoint.WorkOrderManager
+
+			};
+			var wo = new WorkOrder { idWorkOrder = strIdWorkOrder };
+			toWOManager.content = WorkOrder.ToJson(wo); //We send a WorkOrder skeleton to the WorkOrderManager so it can fill it with juicy data.
 			SendToWorkOrderManager(toWOManager);
 
 			//Our work here is done. We might receive something one day, but at least we are not blocking anyone on the port.
@@ -273,7 +275,7 @@ namespace ProductionArea
 
 		public event EventHandler<ProductionAreaEventArgs> Events;
 
-		public void OnProductionAreaManager(object sender, ProductionAreaEventArgs e)
+		public void OnProductionAreaManagerEvent(object sender, ProductionAreaEventArgs e)
 		{
 			switch (e.action)
 			{
@@ -281,23 +283,30 @@ namespace ProductionArea
 					//Send some items this way
 					//Pick all the items for a single WorkOrder, and create an IEnumerable<string> with them.
 					Console.WriteLine("Preparing to send a bunch of items to the ProductionAreaManager.");
-					var itemsToPickFrom = IngressWarehouse[e.idWorkOrder].items;
 					var eventArgsItems = new List<string>();
-					foreach (var item in itemsToPickFrom)
-						while (item.Value > 0)
-						{
-							eventArgsItems.Add(item.Key);
-							itemsToPickFrom[item.Key] -= 1;
-						}
-
-					var eventArgs = new ProductionAreaEventArgs
+					
+					if(IngressWarehouse.ContainsKey(e.idWorkOrder))
 					{
-						action = ProductionAction.Prod,
-						idWorkOrder = e.idWorkOrder,
-						items = eventArgsItems
-					};
-					Console.WriteLine("Sending a bunch of items to the ProductionManager");
-					Events?.Invoke(this, eventArgs);
+						foreach (var item in IngressWarehouse[e.idWorkOrder].items)
+						{
+							for(var i =  0; i < item.Value; ++i)
+							{
+								eventArgsItems.Add(item.Key); //Should actually be a Dict<string, uint>, but whatever
+							}
+						}
+						IngressWarehouse.Remove(e.idWorkOrder);
+
+						var eventArgs = new ProductionAreaEventArgs
+						{
+							action = ProductionAction.Prod,
+							idWorkOrder = e.idWorkOrder,
+							items = eventArgsItems
+						};
+						Console.WriteLine("Sending a bunch of items to the ProductionManager");
+						Events?.Invoke(this, eventArgs);
+					}
+					//Console.WriteLine("There is no job to do. Not sending anything bud, sorry.");
+
 					break;
 				case ProductionAction.Done:
 					//Got some items to send to FinalWarehouse via Carrier
@@ -312,7 +321,7 @@ namespace ProductionArea
 
 					var toCarrier = new Message
 					{
-						content = deliveryOrder.ToString(),
+						content = DeliveryOrder.ToJson(deliveryOrder),
 						action = Message.NetworkAction.Delivery,
 						source = Message.ApprovedEndpoint.ProductionArea,
 						destination = Message.ApprovedEndpoint.FinalWarehouse
@@ -341,7 +350,7 @@ namespace ProductionArea
 		public void Subscribe(ProductionAreaManager pam)
 		{
 			Console.WriteLine("Server Subscribed to Manager");
-			pam.EventsServer += OnProductionAreaManager;
+			pam.EventsServer += OnProductionAreaManagerEvent;
 		}
 	}
 }

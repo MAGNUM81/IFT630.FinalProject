@@ -4,20 +4,21 @@
   <PropertyGroup>
     <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
     <Platform Condition=" '$(Platform)' == '' ">AnyCPU</Platform>
-    <ProjectGuid>{E901C972-8364-441C-BA58-E79658E77A1D}</ProjectGuid>
+    <ProjectGuid>{D09D5C8B-8362-42A3-ADBB-1D17F720D2F9}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>WorkOrderManager</RootNamespace>
-    <AssemblyName>WorkOrderManager</AssemblyName>
+    <RootNamespace>FinalWarehouse</RootNamespace>
+    <AssemblyName>FinalWarehouse</AssemblyName>
     <TargetFrameworkVersion>v4.6.1</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
     <AutoGenerateBindingRedirects>true</AutoGenerateBindingRedirects>
+    <Deterministic>true</Deterministic>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <PlatformTarget>AnyCPU</PlatformTarget>
     <DebugSymbols>true</DebugSymbols>
     <DebugType>full</DebugType>
     <Optimize>false</Optimize>
-    <OutputPath>bin\Debug\</OutputPath>
+    <OutputPath>..\WorkOrderManager\bin\Debug\</OutputPath>
     <DefineConstants>DEBUG;TRACE</DefineConstants>
     <ErrorReport>prompt</ErrorReport>
     <WarningLevel>4</WarningLevel>
@@ -45,12 +46,21 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="HttpClientLayer.cs" />
-    <Compile Include="Message.cs" />
-    <Compile Include="WorkOrderManager.cs" />
+    <Compile Include="..\BOMOrderManager\DeliveryOrder.cs">
+      <Link>DeliveryOrder.cs</Link>
+    </Compile>
+    <Compile Include="..\WorkOrderManager\HttpClientLayer.cs">
+      <Link>HttpClientLayer.cs</Link>
+    </Compile>
+    <Compile Include="..\WorkOrderManager\Message.cs">
+      <Link>Message.cs</Link>
+    </Compile>
+    <Compile Include="..\WorkOrderManager\WorkOrder.cs">
+      <Link>WorkOrder.cs</Link>
+    </Compile>
+    <Compile Include="FinalWarehouseServer.cs" />
+    <Compile Include="FinalWarehouseManager.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
-    <Compile Include="WorkOrder.cs" />
-    <Compile Include="WorkOrderServer.cs" />
   </ItemGroup>
   <ItemGroup>
     <None Include="App.config" />

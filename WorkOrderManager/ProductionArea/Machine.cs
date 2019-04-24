@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Threading;
 
 namespace ProductionArea
 {
@@ -8,7 +9,8 @@ namespace ProductionArea
 		private readonly Dictionary<string, uint> BOMsNeeded = new Dictionary<string, uint>(); //Recipe
 		private readonly string FinishedProductType;
 		private readonly Dictionary<string, uint> WorkingMemory = new Dictionary<string, uint>(); //Progression
-		private ComponentState state;
+		public ComponentState state;
+		public string ID = Guid.NewGuid().ToString();
 
 		public Machine(string FProductType, params string[] BOMs)
 		{
@@ -32,7 +34,12 @@ namespace ProductionArea
 		{
 			state = ComponentState.Running;
 			Console.WriteLine("The machine of type {0} is up and running.", FinishedProductType);
-			Events?.Invoke(this, new ProductionAreaEventArgs(ProductionAction.Ready));
+			while(true)
+			{
+				if(state == ComponentState.Running)
+					Events?.Invoke(this, new ProductionAreaEventArgs(ProductionAction.Ready));
+			}
+			
 		}
 
 		public void Stop()
@@ -51,7 +58,12 @@ namespace ProductionArea
 			{
 				case ProductionAction.Prod:
 				{
-					if (e.typeProd == FinishedProductType) ProcessTranformationRequest(e);
+					state = ComponentState.Running;
+					if (e.typeProd == FinishedProductType && (string)e.anythingElse == ID)
+					{
+						Console.WriteLine("Machine #{0} of type {1} has received a job.", ID, FinishedProductType);
+						ProcessTranformationRequest(e);
+					}
 
 					break;
 				}
@@ -65,6 +77,17 @@ namespace ProductionArea
 					//Else, just stop.
 					Stop();
 					break;
+				case ProductionAction.Error:
+					break;
+				case ProductionAction.None:
+					state = ComponentState.Idle;
+					break;
+				case ProductionAction.Done:
+					break;
+				case ProductionAction.Ready:
+					break;
+				default:
+					throw new ArgumentOutOfRangeException();
 			}
 		}
 
@@ -96,19 +119,23 @@ namespace ProductionArea
 				ProductionAction.Done,
 				e.idWorkOrder,
 				new[] {result});
-			//Fire a Ready Event containing the items produced
+			//Fire a Done Event containing the items produced
 			Events?.Invoke(this, args);
+			state = ComponentState.Running;
+			//Then a Ready event
+			Events?.Invoke(this, new ProductionAreaEventArgs(ProductionAction.Ready));
 		}
 
 		private string Transform()
 		{
-			foreach (var item in WorkingMemory)
+			Console.WriteLine("************PROCESSING TYPE {0}************", FinishedProductType);
+			for(int i = 0; i < 3; ++i)
 			{
-				var maxIter = item.Value;
-				for (var i = 0; i < maxIter; ++i)
-					WorkingMemory[item.Key] -= 1; //We Empty the working memory one item at a time.
-				//The processing time will Depend on the number of elements to process
+				Thread.Sleep(1000);
+				Console.Write(".....\t");
 			}
+			Console.WriteLine("\n**********END OF PROCESSING {0}************", FinishedProductType);
+			
 
 			return FinishedProductType;
 		}
